@@ -114,3 +114,11 @@ TEST_CASE("View Reshape Errors") {
     const std::size_t huge = std::numeric_limits<std::size_t>::max() / 2 + 1;
     CHECK_THROWS_AS(v.reshape({huge, 3}), std::length_error);
 }
+
+TEST_CASE("View Reshape Non-Contiguous Errors") {
+    auto t = make23();
+
+    CHECK_THROWS_AS(t.view().transpose().reshape({2, 3}), std::runtime_error);
+    CHECK_THROWS_AS(t.view().permute({1, 0}).reshape({2, 3}), std::runtime_error);
+    CHECK_THROWS_AS(t.slice(st::all, st::Slice(0, 3, 2)).reshape({4}), std::runtime_error);
+}

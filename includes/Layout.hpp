@@ -175,7 +175,7 @@ public:
     static inline std::pair<Layout, std::size_t>
     sliceLayout( const Layout& base, const std::vector<Slice>& slices ) {
         if (slices.size() != base.ndim())
-            throw std::invalid_argument("Layout::slice: number of slices ("
+            throw std::invalid_argument("Layout::sliceLayout: number of slices ("
                     + std::to_string(slices.size()) + ") must match tensor dimensions ("
                     + std::to_string(base.ndim()) + ")");
 
@@ -189,14 +189,14 @@ public:
             const Slice& s_i = slices[axis];
 
             if (s_i.step == 0)
-                throw std::invalid_argument("TensorView::slice: step cannot be zero");
+                throw std::invalid_argument("Layout::sliceLayout: step cannot be zero");
 
             std::size_t stop = (s_i.stop == Slice::npos) ? base.shape(axis) : s_i.stop;
 
             if (stop > base.shape(axis))
-                throw std::out_of_range("TensorView::slice: stop exceeds axis size");
+                throw std::out_of_range("Layout::sliceLayout: stop exceeds axis size");
             if (s_i.start > stop)
-                throw std::invalid_argument("TensorView::slice: start cannot be greater than stop");
+                throw std::invalid_argument("Layout::sliceLayout: start cannot be greater than stop");
 
             newShape.push_back((stop - s_i.start + s_i.step - 1) / s_i.step);
             offset += s_i.start * base.stride(axis);

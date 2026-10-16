@@ -43,8 +43,8 @@ public:
 
     // Shape Constructor
     explicit Tensor( const std::vector<std::size_t>& shape )
-        : _layout(shape)
-        , _data(std::make_unique<T[]>(_layout.size())) {}
+        : _layout(shape), _data(std::make_unique<T[]>(_layout.size())) {
+    }
 
     // Shape + Fill Value Constructor
     Tensor( const std::vector<std::size_t>& shape, T value )
@@ -122,6 +122,10 @@ public:
                 return false;
         }
         return true;
+    }
+
+    bool operator!=( const Tensor& other ) const {
+        return !(*this == other);
     }
 
     // Multi-Index Operator
@@ -230,8 +234,8 @@ public:
         return permute(axes);
     }
 
-    TensorView<T> reshape( const std::vector<std::size_t> &shape ) & {
-        if (shape.empty()) {
+    TensorView<T> reshape( const std::vector<std::size_t> &newShape ) & {
+        if (newShape.empty()) {
             if (size() != 1)
                 throw std::invalid_argument("Tensor::reshape: cannot reshape tensor of size "
                         + std::to_string(size()) + " to a scalar");
@@ -239,18 +243,18 @@ public:
         }
 
         std::size_t total = 1;
-        for (std::size_t dim : shape) {
+        for (std::size_t dim : newShape) {
             if (dim != 0 && total > std::numeric_limits<std::size_t>::max() / dim)
                 throw std::length_error("Tensor::reshape: requested shape "
-                        + vecToString(shape) + " exceeds representable size");
+                        + vecToString(newShape) + " exceeds representable size");
             total *= dim;
         }
 
         if (total != size())
             throw std::invalid_argument("Tensor::reshape: cannot reshape tensor of shape "
-                    + vecToString(this->shape()) + " into shape " + vecToString(shape));
+                    + vecToString(shape()) + " into shape " + vecToString(newShape));
 
-        return TensorView<T>(_data.get(), Layout(shape));
+        return TensorView<T>(_data.get(), Layout(newShape));
     }
 
     template <typename... Slices>
@@ -267,7 +271,12 @@ public:
 
     TensorView<T> view( void ) && = delete;
     TensorView<T> transpose( void ) && = delete;
+    TensorView<T> transpose( const std::size_t a, const std::size_t b ) && = delete;
+    TensorView<T> permute( const std::vector<std::size_t>& axes ) && = delete;
     TensorView<T> reshape( const std::vector<std::size_t>& shape ) && = delete;
+
+    template <typename... Slices>
+    TensorView<T> slice( Slices... slices ) && = delete;
 
     // TODO: [P5] Tensor Operations
 
