@@ -11,12 +11,6 @@
 # include <numeric>
 # include <algorithm>
 
-// TODO: [P2] TensorIterator Class (multi-index traversal + fast path for contiguous)
-//            Define implementation in separate header
-
-// TODO: [P3] Tensor Creation (Zeros, Ones, Linearly-spaced)
-//            Define implementations in separate `.cpp` file (?)
-
 // TODO: [P4] Broadcasting Logic
 
 namespace strata {
@@ -156,13 +150,14 @@ public:
      * --------------
     */
 
-    TensorIterator<const T> begin( void ) const {
-        return TensorIterator<const T>(_data.get(), shape(), stride(), false);
-    }
+    TensorIterator<T> begin( void ) { return TensorIterator<T>(_data.get(), shape(), stride(), false); }
+    TensorIterator<T> end( void ) { return TensorIterator<T>(_data.get(), shape(), stride(), true); }
 
-    TensorIterator<const T> end( void ) const {
-        return TensorIterator<const T>(_data.get(), shape(), stride(), true);
-    }
+    TensorIterator<const T> cbegin( void ) const { return TensorIterator<const T>(_data.get(), shape(), stride(), false); }
+    TensorIterator<const T> cend( void ) const { return TensorIterator<const T>(_data.get(), shape(), stride(), true); }
+
+    TensorIterator<const T> begin( void ) const { return cbegin(); }
+    TensorIterator<const T> end( void ) const { return cend(); }
 
     /*
      * TensorView

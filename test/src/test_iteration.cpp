@@ -3,6 +3,8 @@
 
 #include <iterator>
 #include <vector>
+#include <algorithm>
+#include <type_traits>
 
 namespace {
 
@@ -105,4 +107,63 @@ TEST_CASE("Iterator Arithmetic") {
     auto old2 = at2--;
     CHECK(*old2 == 2);
     CHECK(*at2 == 1);
+}
+
+TEST_CASE("Mutable Iterator Via Range-For") {
+    auto t = make23();
+
+    for (int& x : t)
+        x += 100;
+
+    std::vector<int> got;
+    for (int x : t)
+        got.push_back(x);
+
+    CHECK(got == std::vector<int>{100, 101, 102, 103, 104, 105});
+}
+
+TEST_CASE("Mutable Iterator Dereference And Fill") {
+    auto t = make23();
+
+    *t.begin() = 42;
+    CHECK(t(0, 0) == 42);
+
+    std::fill(t.begin(), t.end(), 7);
+    for (std::size_t i = 0; i < t.size(); i++)
+        CHECK(t(i / 3, i % 3) == 7);
+}
+
+TEST_CASE("Iterator Reference Types") {
+    auto t = make23();
+    static_assert(std::is_same_v<decltype(*t.begin()), int&>);
+
+    const auto& c = t;
+    static_assert(std::is_same_v<decltype(*c.begin()), const int&>);
+    static_assert(std::is_same_v<decltype(*c.cbegin()), const int&>);
+}
+
+TEST_CASE("Const Tensor Iteration") {
+    const auto t = make23();
+
+    std::vector<int> got;
+    for (const int& x : t)
+        got.push_back(x);
+
+    CHECK(got == std::vector<int>{0, 1, 2, 3, 4, 5});
+
+    std::vector<int> cgot;
+    for (auto it = t.cbegin(); it != t.cend(); ++it)
+        cgot.push_back(*it);
+
+    CHECK(cgot == got);
+}
+
+TEST_CASE("Mutable View Iteration Aliases Owner") {
+    auto t = make23();
+
+    for (int& x : t.view().transpose())
+        x = 0;
+
+    for (std::size_t i = 0; i < t.size(); i++)
+        CHECK(t(i / 3, i % 3) == 0);
 }

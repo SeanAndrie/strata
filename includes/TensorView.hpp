@@ -42,13 +42,24 @@ public:
     template <typename... Indices>
     const T& operator()( Indices... indices ) const { return _data[_layout.offset(indices...)]; }
 
-    TensorIterator<const T> begin( void ) const {
-        return TensorIterator<const T>(_data, shape(), stride(), false);
-    }
+    /*
+     * TensorIterator
+     * --------------
+    */
 
-    TensorIterator<const T> end( void ) const {
-        return TensorIterator<const T>(_data, shape(), stride(), true);
-    }
+    TensorIterator<T> begin( void ) { return TensorIterator<T>(_data, shape(), stride(), false); }
+    TensorIterator<T> end( void ) { return TensorIterator<T>(_data, shape(), stride(), true); }
+
+    TensorIterator<const T> cbegin( void ) const { return TensorIterator<const T>(_data, shape(), stride(), false); }
+    TensorIterator<const T> cend( void ) const { return TensorIterator<const T>(_data, shape(), stride(), true); }
+
+    TensorIterator<const T> begin( void ) const { return cbegin(); }
+    TensorIterator<const T> end( void ) const { return cend(); }
+
+    /*
+     * Attributes
+     * ----------
+    */
 
     std::size_t size( void ) const { return _layout.size(); }
     std::size_t ndim( void ) const { return _layout.ndim(); }

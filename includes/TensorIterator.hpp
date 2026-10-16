@@ -4,6 +4,7 @@
 # include <vector>
 # include <utility>
 # include <iterator>
+# include <type_traits>
 
 namespace strata {
 
@@ -39,9 +40,9 @@ public:
 
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = T;
+    using value_type = std::remove_const_t<T>;
     using reference = T&;
-    using pointer = T*;
+    using pointer = std::remove_reference_t<reference>*;
 
     TensorIterator(T* data, std::vector<std::size_t> shape, std::vector<std::size_t> stride, bool atEnd)
         : _data(data)
@@ -57,6 +58,7 @@ public:
     }
 
     reference operator*( void ) const { return _data[flatOffset()]; }
+    pointer operator->( void ) const { return _data + flatOffset(); }
 
     TensorIterator& operator++( void ) {
         for (int axis = static_cast<int>(_shape.size()) - 1; axis >= 0; axis--) {
