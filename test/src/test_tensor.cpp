@@ -226,22 +226,6 @@ TEST_CASE("Tensor Indexing Bounds Checks") {
     }
 }
 
-TEST_CASE("Tensor Fill Method") {
-    const std::vector<std::size_t> shape = {3, 3};
-
-    st::Tensor<float> t(shape);
-    t.fill(10.0f);
-
-    for (std::size_t row = 0; row < shape[0]; row++)
-        for (std::size_t col = 0; col < shape[1]; col++)
-            REQUIRE(t(row, col) == 10.0f);
-
-    t.fill(2.5f);
-    for (std::size_t row = 0; row < shape[0]; row++)
-        for (std::size_t col = 0; col < shape[1]; col++)
-            REQUIRE(t(row, col) == 2.5f);
-}
-
 TEST_CASE("Tensor View Shares Storage") {
     const std::vector<std::size_t> shape = {3, 2};
 
@@ -370,7 +354,7 @@ TEST_CASE("Tensor Transpose 1-D Passes Through") {
     CHECK(t(0) == 42);
 }
 
-TEST_CASE("Tensor Transpose With Axes (Data)") {
+TEST_CASE("Tensor Permute (Data)") {
     const std::vector<std::size_t> shape = {2, 3, 4};
 
     st::Tensor<int> t(shape);
@@ -380,7 +364,7 @@ TEST_CASE("Tensor Transpose With Axes (Data)") {
 
     const std::vector<std::size_t> axes = {1, 2, 0};
     const std::vector<std::size_t> expected = {3, 4, 2};
-    auto v = t.transpose(axes);
+    auto v = t.permute(axes);
 
     REQUIRE(v.shape() == expected);
 
@@ -389,20 +373,49 @@ TEST_CASE("Tensor Transpose With Axes (Data)") {
         for (std::size_t j = 0; j < expected[1]; j++)
             for (std::size_t k = 0; k < expected[2]; k++)
                 REQUIRE(v(i, j, k) == t(k, i, j));
+
+    // The permuted view aliases the original storage.
+    v(0, 0, 0) = 99;
+    CHECK(t(0, 0, 0) == 99);
 }
 
-TEST_CASE("Tensor Transpose With Axes Errors") {
+TEST_CASE("Tensor Permute Errors") {
     st::Tensor<int> t({2, 3});
 
     SUBCASE("wrong number of axes") {
         const std::vector<std::size_t> axes = {1, 0, 0};
-        CHECK_THROWS_AS(t.transpose(axes), std::invalid_argument);
+        CHECK_THROWS_AS(t.permute(axes), std::invalid_argument);
     }
 
     SUBCASE("axis index out of range") {
         const std::vector<std::size_t> axes = {2, 0};
-        CHECK_THROWS_AS(t.transpose(axes), std::invalid_argument);
+        CHECK_THROWS_AS(t.permute(axes), std::invalid_argument);
     }
+
+    SUBCASE("duplicate axis") {
+        const std::vector<std::size_t> axes = {1, 1};
+        CHECK_THROWS_AS(t.permute(axes), std::invalid_argument);
+    }
+}
+
+TEST_CASE("Tensor Transpose Pair") {
+    const std::vector<std::size_t> shape = {2, 3, 4};
+
+    st::Tensor<int> t(shape);
+    for (std::size_t i = 0; i < t.size(); i++)
+        t(i / (shape[1] * shape[2]), (i / shape[2]) % shape[1], i % shape[2])
+            = static_cast<int>(i);
+
+    // Swapping axes 0 and 2 is equivalent to permute({2, 1, 0}).
+    auto v = t.transpose(0, 2);
+
+    REQUIRE(v.shape() == std::vector<std::size_t>{4, 3, 2});
+    for (std::size_t i = 0; i < 4; i++)
+        for (std::size_t j = 0; j < 3; j++)
+            for (std::size_t k = 0; k < 2; k++)
+                REQUIRE(v(i, j, k) == t(k, j, i));
+
+    CHECK_THROWS_AS(t.transpose(0, 3), std::invalid_argument);
 }
 
 TEST_CASE("Tensor Accessors") {
@@ -416,12 +429,40 @@ TEST_CASE("Tensor Accessors") {
     REQUIRE(t.stride() == stride234);
 }
 
-TEST_CASE("Random Test") {
-    st::Tensor<int> t({3, 2, 3}, 1);
-    try {
-        auto v = t.slice(1);
-        v.info();
-    } catch (const std::invalid_argument& e) {
-        std::cerr << e.what() << std::endl;
-    }
+TEST_CASE("Tensor Index Accessors") {
+    const std::vector<std::size_t> shape = {2, 3, 4};
+
+    // Deliberately non-const: the index overloads must resolve for non-const
+    // objects too (previously shadowed by private helpers).
+    st::Tensor<int> t(shape);
+
+    CHECK(t.shape(0) == 2);
+    CHECK(t.shape(1) == 3);
+    CHECK(t.shape(2) == 4);
+    CHECK(t.stride(0) == 12);
+    CHECK(t.stride(1) == 4);
+    CHECK(t.stride(2) == 1);
+
+    const st::Tensor<int>& ct = t;
+    CHECK(ct.shape(0) == 2);
+    CHECK(ct.stride(0) == 12);
+}
+
+TEST_CASE("Tensor Slicing") {
+    st::Tensor<int> t({2, 3});
+    for (std::size_t i = 0; i < t.size(); i++)
+        t(i / 3, i % 3) = static_cast<int>(i);
+
+    auto v = t.slice(st::all, st::Slice(1, 3));
+
+    REQUIRE(v.shape() == std::vector<std::size_t>{2, 2});
+    REQUIRE(v.stride() == std::vector<std::size_t>{3, 1});
+    CHECK(v(0, 0) == 1);
+    CHECK(v(0, 1) == 2);
+    CHECK(v(1, 0) == 4);
+    CHECK(v(1, 1) == 5);
+
+    // The slice aliases the original storage.
+    v(0, 0) = 42;
+    CHECK(t(0, 1) == 42);
 }

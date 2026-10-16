@@ -1,7 +1,7 @@
 NAME := tests
 CC := c++
-CFLAGS := -Wall -Werror -Wextra -I. -I../includes -std=c++17
-HEADERS := doctest.h ../includes/Tensor.hpp ../includes/Layout.hpp ../includes/TensorView.hpp
+CFLAGS := -Wall -Wextra -Werror -I. -I../includes -std=c++17
+HEADERS := doctest.h ../includes/Tensor.hpp ../includes/Layout.hpp ../includes/TensorView.hpp ../includes/TensorIterator.hpp
 
 SRC_DIR := src
 SRC := $(wildcard $(SRC_DIR)/*.cpp)
